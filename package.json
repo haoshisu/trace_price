@@ -15,9 +15,11 @@
     "express": "^5.1.0",
     "lucide-react": "^0.487.0",
     "mongoose": "^8.13.2",
+    "node-cron": "^3.0.3",
     "puppeteer": "^24.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-toastify": "^11.0.5",
     "recharts": "^2.15.2",
     "tailwindcss": "^4.1.3"
   },

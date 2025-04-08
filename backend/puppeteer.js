@@ -1,7 +1,8 @@
 import express from 'express'
 import puppeteer from 'puppeteer'
 import cors from 'cors'
-import mongooseDB from './db.js'
+import Product from './modal/productSchema.js'
+import cron from 'node-cron'
 
 const app = express()
 const port = 3001
@@ -17,12 +18,25 @@ app.listen(port,() => {
 //商品網址 https://www.momoshop.com.tw/goods/GoodsDetail.jsp?i_code=12515193  
 // https://www.momoshop.com.tw/goods/GoodsDetail.jsp?mdiv=ghostShopCart&i_code=13136933
 
+// 定時爬取
+cron.schedule('0 6 * * *',async () => {
+    const products = await Product.find()
+    const now  = new Date().toISOString().slice(0,10)
+    for(const p of products){
+        const result  = await scrapeProduct(p.url)
+        const newHistory = {date:now,price:result.price}
+
+        p.history.unshift(newHistory)
+        await p.save()
+    }
+    console.log("每日更新完成")
+})
+
 //爬取商品
 async function scrapeProduct(url) {
     const broswer = await puppeteer.launch()
     const page = await broswer.newPage()
     await page.goto(url,{waitUntil:'domcontentloaded'}) //打開網址, 並等待完全載入
-    // const imgSrc = await page.$eval('img.jqzoom', imgs => imgs.map(img => img.src))
     
     const product = await page.evaluate(() => {
         //name
@@ -66,8 +80,6 @@ app.get('/scrape', async (req,res) => {
     }
 })
 
-const trackerProduct = []
-
 app.post('/tracker', async (req, res) => {
     console.log("tracker start")
     console.log(req.body) // 現在這裡就會有內容了
@@ -77,34 +89,29 @@ app.post('/tracker', async (req, res) => {
 
     const product = await scrapeProduct(url)
     const now = new Date().toISOString().slice(0, 10)
-    const randomNumber = Math.floor(Math.random() * 90000)
-    const newProduct = {
+    const newProduct = new Product({ //存進mongodb
         url,
-        orderNo:randomNumber,
         name: product.name,
         imgSrc:product.imgSrc,
         history: [{ date: now, price: product.price }] 
-    }
-    trackerProduct.push(newProduct)
-    console.log(trackerProduct)
-    res.json({ message: "已加入商品追蹤清單", product: newProduct })
-})
+    })
 
-
-app.get('/products',(req,res) => {
-    res.json(trackerProduct)
-})
-
-app.post("/deletetracker",(req,res) => {
-    console.log('del start')
-    const {trackerID} = req.body
-    if(!trackerID) return res.status(400).send({error:"缺少刪除資料"})
+    await newProduct.save()
+    res.json({ status: "1x100"})
     
-    const index = trackerProduct.findIndex((e) => e.orderNo === trackerID)
-    if( index !== -1){
-        trackerProduct.splice(index,1)
-    }
-    console.log(trackerProduct)
-    res.json(trackerProduct)
+})
+
+
+app.get('/products', async (req,res) => {
+    const products = await Product.find()
+    res.json(products)
+})
+
+app.delete("/deletetracker/:trackerID", async (req,res) => {
+    console.log('del start')
+    const {trackerID} = req.params
+
+    await Product.findByIdAndDelete(trackerID)
+    res.json({status:"1x100"})
 })
 
