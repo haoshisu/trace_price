@@ -14,13 +14,10 @@ app.listen(port,() => {
     console.log('server is running 3001')
 })
 
-//mongoDB 密碼 BxiavY7V38qjpid9 帳號 haoshisu0614@gmail.com
-//商品網址 https://www.momoshop.com.tw/goods/GoodsDetail.jsp?i_code=12515193  
-// https://www.momoshop.com.tw/goods/GoodsDetail.jsp?mdiv=ghostShopCart&i_code=13136933
-
 // 定時爬取
 cron.schedule('0 6 * * *',async () => {
     const products = await Product.find()
+    if(products.length === 0 ) return //無資料直接return 
     const now  = new Date().toISOString().slice(0,10)
     for(const p of products){
         const result  = await scrapeProduct(p.url)
@@ -29,7 +26,7 @@ cron.schedule('0 6 * * *',async () => {
         p.history.unshift(newHistory)
         await p.save()
     }
-    console.log("每日更新完成")
+    console.log(`${now}更新完成`)
 })
 
 //爬取商品
@@ -56,14 +53,12 @@ async function scrapeProduct(url) {
             "imgSrc":src
         }
     })
-    console.log(product)
     await broswer.close()
     return product
 }
 
 
 app.get('/scrape', async (req,res) => {
-    console.log("query start")
     const url = req.query.url //從 URL 查詢參數獲取商品頁面的網址
     if(!url) {
         return res.status(400).send('missing URL')
@@ -71,18 +66,14 @@ app.get('/scrape', async (req,res) => {
     
     try{
         const product = await scrapeProduct(url)
-        console.log("product",product)
         res.json(product)
     }
     catch(error){
-        console.log("erro fetch",error)
         res.status(500).send(error)
     }
 })
 
 app.post('/tracker', async (req, res) => {
-    console.log("tracker start")
-    console.log(req.body) // 現在這裡就會有內容了
 
     const { url } = req.body
     if (!url) return res.status(400).send({ error: "缺少商品網址" })
@@ -108,7 +99,6 @@ app.get('/products', async (req,res) => {
 })
 
 app.delete("/deletetracker/:trackerID", async (req,res) => {
-    console.log('del start')
     const {trackerID} = req.params
 
     await Product.findByIdAndDelete(trackerID)
