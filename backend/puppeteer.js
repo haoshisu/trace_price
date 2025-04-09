@@ -31,10 +31,12 @@ cron.schedule('0 6 * * *',async () => {
 
 //爬取商品
 async function scrapeProduct(url) {
-    const broswer = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    const browser = await puppeteer.launch({
+        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-135.0.7049.42/chrome-linux64/chrome',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless:'new'
     })
-    const page = await broswer.newPage()
+    const page = await browser.newPage()
     await page.goto(url,{waitUntil:'domcontentloaded'}) //打開網址, 並等待完全載入
     
     const product = await page.evaluate(() => {
@@ -55,7 +57,7 @@ async function scrapeProduct(url) {
             "imgSrc":src
         }
     })
-    await broswer.close()
+    await browser.close()
     return product
 }
 
