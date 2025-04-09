@@ -34,7 +34,6 @@ async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
         executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless:'new'
     })
     const page = await browser.newPage()
     await page.goto(url,{waitUntil:'domcontentloaded'}) //打開網址, 並等待完全載入
