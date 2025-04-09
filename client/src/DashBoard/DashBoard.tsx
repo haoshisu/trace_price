@@ -25,8 +25,8 @@ export default function DashBoard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('https://trace-price-backend.onrender.com/tracker', {
-        method: 'POST',
+      const res = await fetch('http://localhost:3001/tracker', { //https://trace-price-backend.onrender.com/tracker
+        method: 'POST',//http://localhost:3001/tracker
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
