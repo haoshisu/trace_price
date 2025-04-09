@@ -5,14 +5,14 @@ import Product from './modal/productSchema.js'
 import cron from 'node-cron'
 
 const app = express()
-const port = 3001
+// const port = 3001
 
 app.use(cors())
 app.use(express.json())
 
-app.listen(port,() => {
-    console.log('server is running 3001')
-})
+// app.listen(port,() => {
+//     console.log('server is running 3001')
+// })
 
 // 定時爬取
 cron.schedule('0 6 * * *',async () => {
@@ -31,7 +31,9 @@ cron.schedule('0 6 * * *',async () => {
 
 //爬取商品
 async function scrapeProduct(url) {
-    const broswer = await puppeteer.launch()
+    const broswer = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    })
     const page = await broswer.newPage()
     await page.goto(url,{waitUntil:'domcontentloaded'}) //打開網址, 並等待完全載入
     
@@ -58,20 +60,20 @@ async function scrapeProduct(url) {
 }
 
 
-app.get('/scrape', async (req,res) => {
-    const url = req.query.url //從 URL 查詢參數獲取商品頁面的網址
-    if(!url) {
-        return res.status(400).send('missing URL')
-    }
+// app.get('/scrape', async (req,res) => {
+//     const url = req.query.url //從 URL 查詢參數獲取商品頁面的網址
+//     if(!url) {
+//         return res.status(400).send('missing URL')
+//     }
     
-    try{
-        const product = await scrapeProduct(url)
-        res.json(product)
-    }
-    catch(error){
-        res.status(500).send(error)
-    }
-})
+//     try{
+//         const product = await scrapeProduct(url)
+//         res.json(product)
+//     }
+//     catch(error){
+//         res.status(500).send(error)
+//     }
+// })
 
 app.post('/tracker', async (req, res) => {
 
@@ -99,7 +101,7 @@ app.post('/tracker', async (req, res) => {
 })
 
 
-app.get('/products', async (res) => {
+app.get('/products', async (req,res) => {
     const products = await Product.find()
     res.json(products)
 })
