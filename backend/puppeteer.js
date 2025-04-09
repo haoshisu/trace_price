@@ -102,6 +102,7 @@ app.post('/tracker', async (req, res) => {
 
 
 app.get('/products', async (req,res) => {
+    console.log("product serach star")
     const products = await Product.find()
     res.json(products)
 })
