@@ -32,7 +32,7 @@ cron.schedule('0 6 * * *',async () => {
 //爬取商品
 async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
-        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-135.0.7049.42/chrome-linux64/chrome',
+        executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless:'new'
     })
