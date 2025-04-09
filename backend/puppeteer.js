@@ -95,6 +95,7 @@ app.post('/tracker', async (req, res) => {
 
     }
     catch(err){
+        console.log(err)
         res.json({status:"9x999",message:"伺服器錯誤"})
     }
     
