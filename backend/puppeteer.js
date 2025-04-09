@@ -5,14 +5,14 @@ import Product from './modal/productSchema.js'
 import cron from 'node-cron'
 
 const app = express()
-// const port = 3001
+const port = process.env.PORT || 3001
 
 app.use(cors())
 app.use(express.json())
 
-// app.listen(port,() => {
-//     console.log('server is running 3001')
-// })
+app.listen(port,() => {
+    console.log('server is running 3001')
+})
 
 // 定時爬取
 cron.schedule('0 6 * * *',async () => {
