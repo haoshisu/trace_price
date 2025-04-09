@@ -76,32 +76,45 @@ app.get('/scrape', async (req,res) => {
 app.post('/tracker', async (req, res) => {
 
     const { url } = req.body
-    if (!url) return res.status(400).send({ error: "缺少商品網址" })
+    if (!url) return res.json({status:"1x101" ,message: "缺少商品網址" })
 
-    const product = await scrapeProduct(url)
-    const now = new Date().toISOString().slice(0, 10)
-    const newProduct = new Product({ //存進mongodb
-        url,
-        name: product.name,
-        imgSrc:product.imgSrc,
-        history: [{ date: now, price: product.price }] 
-    })
+    try{
+        const product = await scrapeProduct(url)
+        const now = new Date().toISOString().slice(0, 10)
+        const newProduct = new Product({ //存進mongodb
+            url,
+            name: product.name,
+            imgSrc:product.imgSrc,
+            history: [{ date: now, price: product.price }] 
+        })
+    
+        await newProduct.save()
+        res.json({ status: "1x100",message:"增加成功"})
 
-    await newProduct.save()
-    res.json({ status: "1x100"})
+    }
+    catch(err){
+        res.json({status:"9x999",message:"伺服器錯誤"})
+    }
     
 })
 
 
-app.get('/products', async (req,res) => {
+app.get('/products', async (res) => {
     const products = await Product.find()
     res.json(products)
 })
 
 app.delete("/deletetracker/:trackerID", async (req,res) => {
     const {trackerID} = req.params
-
-    await Product.findByIdAndDelete(trackerID)
-    res.json({status:"1x100"})
+    try{
+        const findProducts =  await Product.findByIdAndDelete(trackerID)
+        if(!findProducts) return res.json({status:"1x101",message:"沒有可刪除商品"})
+            
+        res.json({status:"1x100",message:"刪除成功"})
+    }
+    catch(err){
+        console.log(err)
+        res.json({status:"9x999",message:"伺服器錯誤"})
+    }
 })
 
