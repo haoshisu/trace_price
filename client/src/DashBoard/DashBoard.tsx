@@ -25,15 +25,17 @@ export default function DashBoard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('http://localhost:3001/tracker', {
+      const res = await fetch('https://trace-price-backend.onrender.com/tracker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
       if (!res.ok) return toast.error("加入失敗")
       const data = await res.json()
-      fetchProducts() // 重新抓取清單
+      if(data.status === "1x101") return toast.error(`${data.message}`)
+      if(data.status === "9x999") return toast.error(`${data.message}`)
       if(data.status === "1x100") toast.success("新增成功")
+      fetchProducts() // 重新抓取清單
     } catch (err) {
       console.error(err)
       setError('無法加入追蹤，請確認網址或後端狀態')
@@ -46,12 +48,14 @@ export default function DashBoard() {
   //刪除追蹤商品
   const handleDeleteTrack = async (trackerID:string) => {
     try{
-      const res = await fetch(`http://localhost:3001/deletetracker/${trackerID}`,{
+      const res = await fetch(`https://trace-price-backend.onrender.com/deletetracker/${trackerID}`,{
         method:"DELETE",
       })
       if(!res.ok) return toast.error("刪除失敗")
       const data = await res.json()
-      if(data.staus === "1x100") toast.success("刪除成功")
+      if(data.status === "1x101") return toast.error(`${data.message}`)
+      if(data.status === "9x999") return toast.error(`${data.message}`)
+      if(data.status === "1x100") toast.success("刪除成功")
       console.log(data)
       fetchProducts()
     }catch(err){
@@ -62,7 +66,7 @@ export default function DashBoard() {
   //獲取追蹤商品
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:3001/products')
+      const res = await fetch('https://trace-price-backend.onrender.com/products')
       const data = await res.json()
       setProducts(data)
     } catch (err) {
