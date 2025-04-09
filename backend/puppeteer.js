@@ -32,7 +32,7 @@ cron.schedule('0 6 * * *',async () => {
 //爬取商品
 async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
-        executablePath: puppeteer.executablePath(),
+        // executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
     const page = await browser.newPage()
@@ -43,17 +43,24 @@ async function scrapeProduct(url) {
         const name = document.getElementById('osmGoodsName')?.innerText || '無法獲取商品名稱'
         //price
         const ul = document.querySelector('ul.prdPrice');
-        const secondLi = ul.querySelectorAll('li')[1]; // 取得第二個 li
-        const seoPriceElement = secondLi.querySelector('.seoPrice'); // 抓裡面的 .seoPrice
-        const price = seoPriceElement?.innerText;
-        //image
-        const img = document.querySelector('img.jqzoom')
-        const src = img.src
+        let price = '無法獲取價格';
+        if (ul) {
+            const secondLi = ul.querySelectorAll('li')[1]; // 取得第二個 li
+            if (secondLi) {
+                const seoPriceElement = secondLi.querySelector('.seoPrice');
+                if (seoPriceElement) {
+                    price = seoPriceElement.innerText;
+                }
+            }
+        }
+
+        const img = document.querySelector('img.jqzoom');
+        const src = img ? img.src : '無法獲取圖片';
 
         return {
-            "name":name,
-            "price":price,
-            "imgSrc":src
+            "name": name,
+            "price": price,
+            "imgSrc": src
         }
     })
     await browser.close()
