@@ -80,7 +80,7 @@ export default scrapeProduct
 
 async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
-        executablePath:puppeteer.executablePath,
+        executablePath:puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
 
