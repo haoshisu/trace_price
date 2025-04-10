@@ -25,7 +25,7 @@ export default function DashBoard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('https://trace-price-backend.onrender.com/tracker', {
+      const res = await fetch('http://localhost:3001/tracker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -48,7 +48,7 @@ export default function DashBoard() {
   //刪除追蹤商品
   const handleDeleteTrack = async (trackerID:string) => {
     try{
-      const res = await fetch(`https://trace-price-backend.onrender.com/deletetracker/${trackerID}`,{
+      const res = await fetch(`http://localhost:3001/deletetracker/${trackerID}`,{
         method:"DELETE",
       })
       if(!res.ok) return toast.error("刪除失敗")
@@ -66,7 +66,7 @@ export default function DashBoard() {
   //獲取追蹤商品
   const fetchProducts = async () => {
     try {
-      const res = await fetch('https://trace-price-backend.onrender.com/products')
+      const res = await fetch('http://localhost:3001/products')
       const data = await res.json()
       setProducts(data)
     } catch (err) {
