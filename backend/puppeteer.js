@@ -1,5 +1,5 @@
 import express from 'express'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-extra'
 import cors from 'cors'
 import Product from './modal/productSchema.js'
 import cron from 'node-cron'
