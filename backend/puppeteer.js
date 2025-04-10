@@ -14,7 +14,22 @@ app.listen(port,() => {
     console.log('server is running 3001')
 })
 
+// cron.schedule('0 6 * * *',async () => {
+//     const products = await Product.find()
+//     if(products.length === 0 ) {  //無資料直接return 
+//         console.log('no product')
+//         process.exit(0)
+//     } 
+//     const now  = new Date().toISOString().slice(0,10)
+//     for(const p of products){
+//         const result  = await scrapeProduct(p.url)
+//         const newHistory = {date:now,price:result.price}
 
+//         p.history.unshift(newHistory)
+//         await p.save()
+//     }
+//     console.log(${now}更新完成)
+// })
 
 //爬取商品
 async function scrapeProduct(url) {
@@ -53,7 +68,7 @@ async function scrapeProduct(url) {
     await browser.close()
     return product
 }
-
+export default scrapeProduct
 
 // app.get('/scrape', async (req,res) => {
 //     const url = req.query.url //從 URL 查詢參數獲取商品頁面的網址
