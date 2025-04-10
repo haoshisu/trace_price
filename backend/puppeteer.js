@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer'
 import cors from 'cors'
 import Product from './modal/productSchema.js'
 import cron from 'node-cron'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 
 const app = express()
 const port = process.env.PORT || 3001
@@ -13,7 +14,7 @@ app.use(express.json())
 app.listen(port,() => {
     console.log('server is running 3001')
 })
-
+puppeteer.use(StealthPlugin())
 
 // 定時爬取
 // cron.schedule('* * * * *',async () => {
@@ -76,7 +77,6 @@ app.listen(port,() => {
 //     await browser.close()
 //     return product
 // }
-export default scrapeProduct
 
 async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
