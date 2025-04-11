@@ -3,6 +3,7 @@ import './DashBoard.css'
 import { LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid, Legend } from 'recharts'
 import { X } from 'lucide-react'
 import { toast } from 'react-toastify'
+import FetchLoading from '../fetchLoading/FetchLoading'
 
 
 interface Product {
@@ -15,8 +16,9 @@ interface Product {
 }
 
 export default function DashBoard() {
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [url, setUrl] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
+  const [fetchProductLoading, setFetchProductLoading] = useState<boolean>(false)
   const [products, setProducts] = useState<Product[]>([])
   const [error, setError] = useState('')
 
@@ -65,6 +67,7 @@ export default function DashBoard() {
 
   //獲取追蹤商品
   const fetchProducts = async () => {
+    setFetchProductLoading(true)
     try {
       const res = await fetch('https://trace-price-backend.onrender.com/products')
       const data = await res.json()
@@ -72,6 +75,9 @@ export default function DashBoard() {
     } catch (err) {
       toast.warning("無法獲取追蹤商品")
       console.error('無法獲取追蹤清單',err)
+    }
+    finally{
+      setFetchProductLoading(false)
     }
   }
 
@@ -81,85 +87,91 @@ export default function DashBoard() {
 
 
   return (
-  <div className="min-h-screen bg-gray-100 p-8">
-    <div className="max-w-xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center">🛍️ 商品價格追蹤器</h1>
-      
-      <div className="flex mb-6 gap-2">
-        <input
-          className="flex-1 px-4 py-2 border rounded-lg shadow-sm"
-          placeholder="輸入商品網址"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button
-          disabled={loading}
-          onClick={handleAddToTrack}
-          className="px-4 py-2 text-white rounded-lg bg-blue-600 hover:bg-blue-700
-          disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
-        >
-          {loading ? '加入中' : "追蹤"}
-        </button>
-      </div>
+  <>
+  {fetchProductLoading ? 
+    <FetchLoading />
+  : 
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center">🛍️ 商品價格追蹤器</h1>
+        
+        <div className="flex mb-6 gap-2">
+          <input
+            className="flex-1 px-4 py-2 border rounded-lg shadow-sm"
+            placeholder="輸入商品網址"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button
+            disabled={loading}
+            onClick={handleAddToTrack}
+            className="px-4 py-2 text-white rounded-lg bg-blue-600 hover:bg-blue-700
+            disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+          >
+            {loading ? '加入中' : "追蹤"}
+          </button>
+        </div>
 
-      {error && <p className="text-red-500 mb-2">{error}</p>}
+        {error && <p className="text-red-500 mb-2">{error}</p>}
 
-      <div className="grid gap-4">
-        {products.map((product, index) => {
-          const chartData = product.history.map(e => ({
-            date: e.date,
-            price: Number(e.price.replace(",","")),
-          }))
-          return (
-            <div key={index} className="p-4 bg-white rounded-lg shadow relative">
-              {/* 刪除按鈕 */}
-              <button
-                onClick={() => handleDeleteTrack(product._id)}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700 z-10"
-                title="刪除追蹤"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <h2 className="text-lg font-semibold">{product.name}</h2>
-              <a
-                href={product.url}
-                target="_blank"
-                className="text-blue-500 text-sm underline"
-              >
-                查看商品
-              </a>
+        <div className="grid gap-4">
+          {products.map((product, index) => {
+            const chartData = product.history.map(e => ({
+              date: e.date,
+              price: Number(e.price.replace(",","")),
+            }))
+            return (
+              <div key={index} className="p-4 bg-white rounded-lg shadow relative">
+                {/* 刪除按鈕 */}
+                <button
+                  onClick={() => handleDeleteTrack(product._id)}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 z-10"
+                  title="刪除追蹤"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h2 className="text-lg font-semibold">{product.name}</h2>
+                <a
+                  href={product.url}
+                  target="_blank"
+                  className="text-blue-500 text-sm underline"
+                >
+                  查看商品
+                </a>
 
-              <div>
-                <img src={product.imgSrc} width="100px" />
+                <div>
+                  <img src={product.imgSrc} width="100px" />
+                </div>
+
+                <div className="mt-2 text-sm text-gray-700">
+                  最新價格：<span className="font-medium">{product.history[product.history.length - 1]?.price}</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  追蹤日期：{product.history[product.history.length - 1]?.date}
+                </div>
+
+                <div className="h-[250px] mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={chartData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="price" stroke="#8884d8" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-
-              <div className="mt-2 text-sm text-gray-700">
-                最新價格：<span className="font-medium">{product.history[product.history.length - 1]?.price}</span>
-              </div>
-              <div className="text-xs text-gray-500">
-                追蹤日期：{product.history[product.history.length - 1]?.date}
-              </div>
-
-              <div className="h-[250px] mt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="price" stroke="#8884d8" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
-  </div>
+  }
+  </>
   )
 }
