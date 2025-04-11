@@ -15,7 +15,7 @@ app.listen(port,() => {
 })
 
 // 定時爬取
-cron.schedule('* 6 * * *',async () => {
+cron.schedule('* 9 * * *',async () => {
     console.log("cron start")
     try{
 
@@ -26,7 +26,7 @@ cron.schedule('* 6 * * *',async () => {
             const result  = await scrapeProduct(p.url)
             const newHistory = {date:now,price:result.price}
             
-            p.history.unshift(newHistory)
+            p.history.push(newHistory)
             await p.save()
         }
         console.log(`${now}更新完成`)
@@ -39,7 +39,7 @@ cron.schedule('* 6 * * *',async () => {
 //爬取商品
 async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
-        // executablePath: puppeteer.executablePath(),
+        executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
     const page = await browser.newPage()
