@@ -15,7 +15,7 @@ app.listen(port,() => {
 })
 
 // 定時爬取
-cron.schedule('* 9 * * *',async () => {
+    cron.schedule('0 22 * * *',async () => {
     console.log("cron start")
     try{
 
