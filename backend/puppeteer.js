@@ -15,7 +15,7 @@ app.listen(port,() => {
 })
 
 // 定時爬取
-    cron.schedule('0 22 * * *',async () => {
+    cron.schedule('0 6 * * *',async () => {
     console.log("cron start")
     try{
 
@@ -41,6 +41,7 @@ async function scrapeProduct(url) {
     const browser = await puppeteer.launch({
         executablePath: puppeteer.executablePath(),
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        timeout:60000 //超時時間
     })
     const page = await browser.newPage()
     await page.goto(url,{waitUntil:'domcontentloaded'}) //等待完全載入
