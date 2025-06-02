@@ -15,26 +15,26 @@ app.listen(port,() => {
 })
 
 // 定時爬取
-    cron.schedule('0 22 * * *',async () => {
-    console.log("cron start")
-    try{
+//     cron.schedule('*/2 * * * *',async () => {
+//     console.log("cron start")
+//     try{
 
-        const products = await Product.find()
-        if(products.length === 0 ) return //無資料直接return 
-        const now  = new Date().toISOString().slice(0,10)
-        for(const p of products){
-            const result  = await scrapeProduct(p.url)
-            const newHistory = {date:now,price:result.price}
+//         const products = await Product.find()
+//         if(products.length === 0 ) return //無資料直接return 
+//         const now  = new Date().toISOString().slice(0,10)
+//         for(const p of products){
+//             const result  = await scrapeProduct(p.url)
+//             const newHistory = {date:now,price:result.price}
             
-            p.history.push(newHistory)
-            await p.save()
-        }
-        console.log(`${now}更新完成`)
-    }
-    catch(err){
-        console.log("cron err",err)
-    }
-})
+//             p.history.push(newHistory)
+//             await p.save()
+//         }
+//         console.log(`${now}更新完成`)
+//     }
+//     catch(err){
+//         console.log("cron err",err)
+//     }
+// })
 
 //爬取商品
 async function scrapeProduct(url) {
