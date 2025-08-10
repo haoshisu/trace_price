@@ -307,8 +307,6 @@ app.post("/set-target-price", async (req, res) => {
 //   throw err;
 //  }
 // }
-import puppeteer from "puppeteer";
-
 async function scrapeProduct(url) {
  let browser;
  try {
