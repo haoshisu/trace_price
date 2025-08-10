@@ -236,6 +236,7 @@ async function scrapeProduct(url) {
  let browser;
  try {
   browser = await puppeteer.launch({
+   executablePath: puppeteer.executablePath(),
    headless: "new", // 或 true
    args: [
     "--no-sandbox",
