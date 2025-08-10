@@ -232,79 +232,211 @@ app.post("/set-target-price", async (req, res) => {
 //   throw err;
 //  }
 // }
+// async function scrapeProduct(url) {
+//  let browser;
+//  try {
+//   browser = await puppeteer.launch({
+//    executablePath: puppeteer.executablePath(),
+//    headless: "new", // 或 true
+//    args: [
+//     "--no-sandbox",
+//     "--disable-setuid-sandbox",
+//     "--disable-dev-shm-usage", // Render 容器 /dev/shm 很小，避免崩
+//     "--no-zygote",
+//     "--single-process",
+//     "--disable-gpu",
+//    ],
+//    // 這是「啟動」逾時，和導航逾時不同
+//    timeout: 120000,
+//   });
+
+//   const page = await browser.newPage();
+
+//   // 拉長「導航」與「一般」逾時
+//   page.setDefaultNavigationTimeout(120000);
+//   page.setDefaultTimeout(120000);
+
+//   // 讓頁面更像一般使用者
+//   await page.setUserAgent(
+//    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+//   );
+//   await page.setExtraHTTPHeaders({
+//    "accept-language": "zh-TW,zh;q=0.9,en;q=0.8",
+//   });
+
+//   // 可選：攔截圖片/字型以加速
+//   await page.setRequestInterception(true);
+//   page.on("request", (req) => {
+//    const type = req.resourceType();
+//    if (type === "image" || type === "font" || type === "media") {
+//     req.abort();
+//    } else {
+//     req.continue();
+//    }
+//   });
+
+//   // 明確設定 goto 的逾時
+//   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+
+//   const product = await page.evaluate(() => {
+//    let name = "無法獲取商品名稱";
+//    const nameElem = document.getElementById("osmGoodsName");
+//    if (nameElem) name = nameElem.innerText?.trim();
+
+//    let price = "無法獲取價格";
+//    const ul = document.querySelector("ul.prdPrice");
+//    if (ul) {
+//     const items = ul.querySelectorAll("li");
+//     if (items.length > 0) {
+//      const lastLi = items[items.length - 1];
+//      const seoPriceElement = lastLi.querySelector(".seoPrice");
+//      if (seoPriceElement) price = seoPriceElement.textContent?.trim() || price;
+//     }
+//    }
+
+//    const img = document.querySelector("img.jqzoom");
+//    const src = img ? img.src : "無法獲取圖片";
+
+//    return { name, price, imgSrc: src };
+//   });
+
+//   await browser.close();
+//   return product;
+//  } catch (err) {
+//   if (browser) await browser.close();
+//   throw err;
+//  }
+// }
+import puppeteer from "puppeteer";
+
 async function scrapeProduct(url) {
  let browser;
  try {
   browser = await puppeteer.launch({
+   headless: "new",
    executablePath: puppeteer.executablePath(),
-   headless: "new", // 或 true
    args: [
     "--no-sandbox",
     "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage", // Render 容器 /dev/shm 很小，避免崩
+    "--disable-dev-shm-usage",
     "--no-zygote",
     "--single-process",
     "--disable-gpu",
    ],
-   // 這是「啟動」逾時，和導航逾時不同
    timeout: 120000,
   });
 
   const page = await browser.newPage();
-
-  // 拉長「導航」與「一般」逾時
-  page.setDefaultNavigationTimeout(120000);
   page.setDefaultTimeout(120000);
-
-  // 讓頁面更像一般使用者
+  page.setDefaultNavigationTimeout(120000);
+  await page.setViewport({ width: 1366, height: 900 });
+  await page.emulateTimezone("Asia/Taipei");
+  await page.setExtraHTTPHeaders({ "accept-language": "zh-TW,zh;q=0.9,en;q=0.8" });
   await page.setUserAgent(
-   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   );
-  await page.setExtraHTTPHeaders({
-   "accept-language": "zh-TW,zh;q=0.9,en;q=0.8",
-  });
 
-  // 可選：攔截圖片/字型以加速
-  await page.setRequestInterception(true);
-  page.on("request", (req) => {
-   const type = req.resourceType();
-   if (type === "image" || type === "font" || type === "media") {
-    req.abort();
-   } else {
-    req.continue();
-   }
-  });
-
-  // 明確設定 goto 的逾時
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
 
-  const product = await page.evaluate(() => {
-   let name = "無法獲取商品名稱";
-   const nameElem = document.getElementById("osmGoodsName");
-   if (nameElem) name = nameElem.innerText?.trim();
+  // 等待「任一個」關鍵訊號出現（名稱/價格/ld+json）
+  await Promise.race([
+   page.waitForSelector("#osmGoodsName", { timeout: 60000 }),
+   page.waitForSelector("ul.prdPrice", { timeout: 60000 }),
+   page.waitForSelector('script[type="application/ld+json"]', { timeout: 60000 }),
+   page.waitForSelector("h1", { timeout: 60000 }),
+  ]).catch(() => {});
 
-   let price = "無法獲取價格";
-   const ul = document.querySelector("ul.prdPrice");
-   if (ul) {
-    const items = ul.querySelectorAll("li");
-    if (items.length > 0) {
-     const lastLi = items[items.length - 1];
-     const seoPriceElement = lastLi.querySelector(".seoPrice");
-     if (seoPriceElement) price = seoPriceElement.textContent?.trim() || price;
-    }
+  const product = await page.evaluate(() => {
+   const pickText = (sel) => {
+    const el = typeof sel === "string" ? document.querySelector(sel) : sel;
+    return el ? (el.textContent || el.innerText || "").trim() : "";
+   };
+
+   // 盡量抓 schema.org 的 Product
+   let ldProd = null;
+   const ldNodes = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+   for (const s of ldNodes) {
+    try {
+     const j = JSON.parse(s.textContent.trim());
+     const arr = Array.isArray(j) ? j : [j];
+     const found = arr.find((x) =>
+      String(x?.["@type"] || "")
+       .toLowerCase()
+       .includes("product")
+     );
+     if (found) {
+      ldProd = found;
+      break;
+     }
+    } catch {}
    }
 
-   const img = document.querySelector("img.jqzoom");
-   const src = img ? img.src : "無法獲取圖片";
+   const name =
+    pickText("#osmGoodsName") ||
+    ldProd?.name ||
+    "" ||
+    pickText("h1") ||
+    document.querySelector('meta[property="og:title"]')?.getAttribute("content") ||
+    "" ||
+    "";
 
-   return { name, price, imgSrc: src };
+   // 價格：從常見容器/任何含 price 的 class/ld+json 取一個可用數字
+   const priceCandidates = [];
+   const ul = document.querySelector("ul.prdPrice");
+   if (ul) {
+    const lis = ul.querySelectorAll("li");
+    if (lis.length) {
+     const lastLi = lis[lis.length - 1];
+     priceCandidates.push(pickText(lastLi.querySelector(".seoPrice")));
+     priceCandidates.push(pickText(lastLi));
+    }
+   }
+   document
+    .querySelectorAll('[class*="price"]')
+    .forEach((el) => priceCandidates.push(pickText(el)));
+   if (ldProd?.offers) {
+    const offer = Array.isArray(ldProd.offers) ? ldProd.offers[0] : ldProd.offers;
+    if (offer?.price) priceCandidates.push(String(offer.price));
+   }
+   const raw = priceCandidates.find((t) => /\d/.test(t)) || "";
+   const priceMatch = raw.replace(/\s/g, "").match(/\d{1,3}(?:,\d{3})+|\d+(\.\d+)?/);
+   const price = priceMatch ? priceMatch[0] : "";
+
+   const imgSrc =
+    document.querySelector("img.jqzoom")?.src ||
+    document.querySelector('meta[property="og:image"]')?.getAttribute("content") ||
+    (Array.isArray(ldProd?.image) ? ldProd.image[0] : ldProd?.image) ||
+    "";
+
+   const pageTitle = document.title;
+   const bodySnippet = (document.body?.innerText || "").slice(0, 200);
+
+   return {
+    name: name || null,
+    price: price || null,
+    imgSrc: imgSrc || null,
+    pageTitle,
+    bodySnippet,
+   };
   });
 
-  await browser.close();
-  return product;
- } catch (err) {
+  // 抓不到時輸出線索（看是否被轉到驗證/錯誤頁）
+  if (!product.name || !product.price || !product.imgSrc) {
+   console.log("[scrape debug]", {
+    url,
+    title: product.pageTitle,
+    snippet: product.bodySnippet,
+    currentUrl: await page.url(),
+   });
+  }
+
+  return {
+   name: product.name || "無法獲取商品名稱",
+   price: product.price || "無法獲取價格",
+   imgSrc: product.imgSrc || "無法獲取圖片",
+  };
+ } finally {
   if (browser) await browser.close();
-  throw err;
  }
 }
 
