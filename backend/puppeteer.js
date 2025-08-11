@@ -313,138 +313,139 @@ app.post('/set-target-price', async (req, res) => {
 //   throw err;
 //  }
 // }
-async function scrapeProduct(url) {
- let browser;
- try {
-  browser = await puppeteer.launch({
-   headless: 'new',
-   executablePath: puppeteer.executablePath(),
-   args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--no-zygote',
-    '--single-process',
-    '--disable-gpu',
-   ],
-   timeout: 120000,
-  });
+// async function scrapeProduct(url) {
+//  let browser;
+//  try {
+//   browser = await puppeteer.launch({
+//    headless: 'new',
+//    executablePath: puppeteer.executablePath(),
+//    args: [
+//     '--no-sandbox',
+//     '--disable-setuid-sandbox',
+//     '--disable-dev-shm-usage',
+//     '--no-zygote',
+//     '--single-process',
+//     '--disable-gpu',
+//    ],
+//    timeout: 120000,
+//   });
 
-  const page = await browser.newPage();
-  page.setDefaultTimeout(120000);
-  page.setDefaultNavigationTimeout(120000);
-  await page.setViewport({ width: 1366, height: 900 });
-  await page.emulateTimezone('Asia/Taipei');
-  await page.setExtraHTTPHeaders({ 'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8' });
-  await page.setUserAgent(
-   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-  );
+//   const page = await browser.newPage();
+//   page.setDefaultTimeout(120000);
+//   page.setDefaultNavigationTimeout(120000);
+//   await page.setViewport({ width: 1366, height: 900 });
+//   await page.emulateTimezone('Asia/Taipei');
+//   await page.setExtraHTTPHeaders({ 'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8' });
+//   await page.setUserAgent(
+//    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+//   );
 
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
+//   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
-  // 等待「任一個」關鍵訊號出現（名稱/價格/ld+json）
-  await Promise.race([
-   page.waitForSelector('#osmGoodsName', { timeout: 60000 }),
-   page.waitForSelector('ul.prdPrice', { timeout: 60000 }),
-   page.waitForSelector('script[type="application/ld+json"]', { timeout: 60000 }),
-   page.waitForSelector('h1', { timeout: 60000 }),
-  ]).catch(() => {});
+//   // 等待「任一個」關鍵訊號出現（名稱/價格/ld+json）
+//   await Promise.race([
+//    page.waitForSelector('#osmGoodsName', { timeout: 60000 }),
+//    page.waitForSelector('ul.prdPrice', { timeout: 60000 }),
+//    page.waitForSelector('script[type="application/ld+json"]', { timeout: 60000 }),
+//    page.waitForSelector('h1', { timeout: 60000 }),
+//   ]).catch(() => {});
 
-  const product = await page.evaluate(() => {
-   const pickText = (sel) => {
-    const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
-    return el ? (el.textContent || el.innerText || '').trim() : '';
-   };
+//   const product = await page.evaluate(() => {
+//    const pickText = (sel) => {
+//     const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+//     return el ? (el.textContent || el.innerText || '').trim() : '';
+//    };
 
-   // 盡量抓 schema.org 的 Product
-   let ldProd = null;
-   const ldNodes = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-   for (const s of ldNodes) {
-    try {
-     const j = JSON.parse(s.textContent.trim());
-     const arr = Array.isArray(j) ? j : [j];
-     const found = arr.find((x) =>
-      String(x?.['@type'] || '')
-       .toLowerCase()
-       .includes('product')
-     );
-     if (found) {
-      ldProd = found;
-      break;
-     }
-    } catch {}
-   }
+//    // 盡量抓 schema.org 的 Product
+//    let ldProd = null;
+//    const ldNodes = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+//    for (const s of ldNodes) {
+//     try {
+//      const j = JSON.parse(s.textContent.trim());
+//      const arr = Array.isArray(j) ? j : [j];
+//      const found = arr.find((x) =>
+//       String(x?.['@type'] || '')
+//        .toLowerCase()
+//        .includes('product')
+//      );
+//      if (found) {
+//       ldProd = found;
+//       break;
+//      }
+//     } catch {}
+//    }
 
-   const name =
-    pickText('#osmGoodsName') ||
-    ldProd?.name ||
-    '' ||
-    pickText('h1') ||
-    document.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
-    '' ||
-    '';
+//    const name =
+//     pickText('#osmGoodsName') ||
+//     ldProd?.name ||
+//     '' ||
+//     pickText('h1') ||
+//     document.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+//     '' ||
+//     '';
 
-   // 價格：從常見容器/任何含 price 的 class/ld+json 取一個可用數字
-   const priceCandidates = [];
-   const ul = document.querySelector('ul.prdPrice');
-   if (ul) {
-    const lis = ul.querySelectorAll('li');
-    if (lis.length) {
-     const lastLi = lis[lis.length - 1];
-     priceCandidates.push(pickText(lastLi.querySelector('.seoPrice')));
-     priceCandidates.push(pickText(lastLi));
-    }
-   }
-   document
-    .querySelectorAll('[class*="price"]')
-    .forEach((el) => priceCandidates.push(pickText(el)));
-   if (ldProd?.offers) {
-    const offer = Array.isArray(ldProd.offers) ? ldProd.offers[0] : ldProd.offers;
-    if (offer?.price) priceCandidates.push(String(offer.price));
-   }
-   const raw = priceCandidates.find((t) => /\d/.test(t)) || '';
-   const priceMatch = raw.replace(/\s/g, '').match(/\d{1,3}(?:,\d{3})+|\d+(\.\d+)?/);
-   const price = priceMatch ? priceMatch[0] : '';
+//    // 價格：從常見容器/任何含 price 的 class/ld+json 取一個可用數字
+//    const priceCandidates = [];
+//    const ul = document.querySelector('ul.prdPrice');
+//    if (ul) {
+//     const lis = ul.querySelectorAll('li');
+//     if (lis.length) {
+//      const lastLi = lis[lis.length - 1];
+//      priceCandidates.push(pickText(lastLi.querySelector('.seoPrice')));
+//      priceCandidates.push(pickText(lastLi));
+//     }
+//    }
+//    document
+//     .querySelectorAll('[class*="price"]')
+//     .forEach((el) => priceCandidates.push(pickText(el)));
+//    if (ldProd?.offers) {
+//     const offer = Array.isArray(ldProd.offers) ? ldProd.offers[0] : ldProd.offers;
+//     if (offer?.price) priceCandidates.push(String(offer.price));
+//    }
+//    const raw = priceCandidates.find((t) => /\d/.test(t)) || '';
+//    const priceMatch = raw.replace(/\s/g, '').match(/\d{1,3}(?:,\d{3})+|\d+(\.\d+)?/);
+//    const price = priceMatch ? priceMatch[0] : '';
 
-   const imgSrc =
-    document.querySelector('img.jqzoom')?.src ||
-    document.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
-    (Array.isArray(ldProd?.image) ? ldProd.image[0] : ldProd?.image) ||
-    '';
+//    const imgSrc =
+//     document.querySelector('img.jqzoom')?.src ||
+//     document.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+//     (Array.isArray(ldProd?.image) ? ldProd.image[0] : ldProd?.image) ||
+//     '';
 
-   const pageTitle = document.title;
-   const bodySnippet = (document.body?.innerText || '').slice(0, 200);
+//    const pageTitle = document.title;
+//    const bodySnippet = (document.body?.innerText || '').slice(0, 200);
 
-   return {
-    name: name || null,
-    price: price || null,
-    imgSrc: imgSrc || null,
-    pageTitle,
-    bodySnippet,
-   };
-  });
+//    return {
+//     name: name || null,
+//     price: price || null,
+//     imgSrc: imgSrc || null,
+//     pageTitle,
+//     bodySnippet,
+//    };
+//   });
 
-  // 抓不到時輸出線索（看是否被轉到驗證/錯誤頁）
-  if (!product.name || !product.price || !product.imgSrc) {
-   console.log('[scrape debug]', {
-    url,
-    title: product.pageTitle,
-    snippet: product.bodySnippet,
-    currentUrl: await page.url(),
-   });
-  }
+//   // 抓不到時輸出線索（看是否被轉到驗證/錯誤頁）
+//   if (!product.name || !product.price || !product.imgSrc) {
+//    console.log('[scrape debug]', {
+//     url,
+//     title: product.pageTitle,
+//     snippet: product.bodySnippet,
+//     currentUrl: await page.url(),
+//    });
+//   }
 
-  return {
-   name: product.name || '無法獲取商品名稱',
-   price: product.price || '無法獲取價格',
-   imgSrc: product.imgSrc || '無法獲取圖片',
-  };
- } finally {
-  if (browser) await browser.close();
- }
-}
+//   return {
+//    name: product.name || '無法獲取商品名稱',
+//    price: product.price || '無法獲取價格',
+//    imgSrc: product.imgSrc || '無法獲取圖片',
+//   };
+//  } finally {
+//   if (browser) await browser.close();
+//  }
+// }
 
 // 錯誤retry
+
 async function scrapeWithRetry(url, retries = 1) {
  try {
   return await scrapeProduct(url);
