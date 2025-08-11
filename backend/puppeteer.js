@@ -445,19 +445,18 @@ app.post('/set-target-price', async (req, res) => {
 // }
 
 // 錯誤retry
-
-async function scrapeWithRetry(url, retries = 1) {
- try {
-  return await scrapeProduct(url);
- } catch (e) {
-  if (retries > 0) {
-   // 簡單退避
-   await new Promise((r) => setTimeout(r, 2000));
-   return scrapeWithRetry(url, retries - 1);
-  }
-  throw e;
- }
-}
+// async function scrapeWithRetry(url, retries = 1) {
+//  try {
+//   return await scrapeProduct(url);
+//  } catch (e) {
+//   if (retries > 0) {
+//    // 簡單退避
+//    await new Promise((r) => setTimeout(r, 2000));
+//    return scrapeWithRetry(url, retries - 1);
+//   }
+//   throw e;
+//  }
+// }
 
 // 爬蟲商品
 app.post('/tracker', async (req, res) => {
