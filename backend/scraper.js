@@ -216,8 +216,8 @@ async function tryHeadless(url) {
 /** 階梯式抓取：API → 靜態 HTML → Headless */
 export async function scrapeProduct(url) {
  // 1) API（最快）
- const api = await tryApi(url).catch(() => null);
- if (api) return api;
+ //  const api = await tryApi(url).catch(() => null);
+ //  if (api) return api;
 
  // 2) 靜態 HTML（快速省資源）
  const html = await tryStaticHtml(url).catch(() => null);
