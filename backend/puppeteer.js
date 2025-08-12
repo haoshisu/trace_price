@@ -1,13 +1,13 @@
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt, { decode } from 'jsonwebtoken';
-import puppeteer from 'puppeteer';
-import cors from 'cors';
-import Product from './modal/productSchema.js';
-import User from './modal/userSchema.js';
-import nodemailer from 'nodemailer';
-import cron from 'node-cron';
-import { scrapeProduct, scrapeWithRetry, toNumber } from './scraper.js';
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt, { decode } from "jsonwebtoken";
+import puppeteer from "puppeteer";
+import cors from "cors";
+import Product from "./modal/productSchema.js";
+import User from "./modal/userSchema.js";
+import nodemailer from "nodemailer";
+import cron from "node-cron";
+import { scrapeProduct, scrapeWithRetry, toNumber } from "./scraper.js";
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -15,12 +15,12 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
- if (['/login', '/register'].includes(req.path)) return next();
+ if (["/login", "/register"].includes(req.path)) return next();
  auth(req, res, next);
 });
 
 app.listen(port, () => {
- console.log('server is running 3001');
+ console.log("server is running 3001");
 });
 
 // 定時爬取
@@ -54,13 +54,13 @@ const transporter = nodemailer.createTransport({
 });
 
 // 測試發送mail
-app.post('/test-mail', async (req, res) => {
+app.post("/test-mail", async (req, res) => {
  try {
   await transporter.sendMail({
    from: '"價格追蹤器(測試)" <no-reply@example.com>',
-   to: 'test@recipient.com',
-   subject: 'Mailtrap 測試信',
-   html: '<p>哈囉，這是一封測試信。</p>',
+   to: "test@recipient.com",
+   subject: "Mailtrap 測試信",
+   html: "<p>哈囉，這是一封測試信。</p>",
   });
   res.json({ ok: true });
  } catch (e) {
@@ -72,26 +72,26 @@ app.post('/test-mail', async (req, res) => {
 // JWT 驗證 middleware
 function auth(req, res, next) {
  const authHeader = req.headers.authorization;
- if (!authHeader) return res.status(401).json({ error: '未授權' });
- const token = authHeader.split(' ')[1];
+ if (!authHeader) return res.status(401).json({ error: "未授權" });
+ const token = authHeader.split(" ")[1];
  try {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   req.userId = decoded.userId;
   next();
  } catch (err) {
-  console.log('jwt error', err.message);
-  res.status(401).json({ error: 'JWT 無效' });
+  console.log("jwt error", err.message);
+  res.status(401).json({ error: "JWT 無效" });
  }
 }
 
 // 註冊
-app.post('/register', async (req, res) => {
+app.post("/register", async (req, res) => {
  const { username, password, email } = req.body;
  //  console.log(username, password, email);
- if ((!username || !password, !email)) return res.status(400).json({ error: '欄位不得為空' });
+ if ((!username || !password, !email)) return res.status(400).json({ error: "欄位不得為空" });
  //檢查帳號,信箱唯一
  const userExists = await User.findOne({ $or: [{ username }, { email }] });
- if (userExists) return res.status(400).json({ error: '帳號或信箱已存在' });
+ if (userExists) return res.status(400).json({ error: "帳號或信箱已存在" });
  const hash = await bcrypt.hash(password, 10);
  const user = new User({ username, password: hash, email, products: [] });
  await user.save();
@@ -100,59 +100,59 @@ app.post('/register', async (req, res) => {
 });
 
 // 登入
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
  const { username, password } = req.body;
- if (!username || !password) return res.status(400).json({ error: '欄位不得為空' });
+ if (!username || !password) return res.status(400).json({ error: "欄位不得為空" });
 
  const user = await User.findOne({ username });
- if (!user) return res.status(400).json({ error: '帳號或密碼錯誤' });
+ if (!user) return res.status(400).json({ error: "帳號或密碼錯誤" });
 
  const isMatch = await bcrypt.compare(password, user.password);
- if (!isMatch) return res.status(400).json({ error: '帳號或密碼錯誤' });
+ if (!isMatch) return res.status(400).json({ error: "帳號或密碼錯誤" });
 
- const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+ const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
  res.json({ token, email: user.email, username: user.username });
 });
 
 // 獲取用戶追蹤的商品
-app.get('/products', async (req, res) => {
+app.get("/products", async (req, res) => {
  try {
   // 只回傳登入會員自己的追蹤清單
-  const user = await User.findById(req.userId).populate('products');
+  const user = await User.findById(req.userId).populate("products");
   if (!user) return res.json([]);
   res.json(user.products || []);
  } catch (err) {
-  res.status(500).json({ error: '伺服器錯誤' });
+  res.status(500).json({ error: "伺服器錯誤" });
  }
 });
 
 // 用戶設定價格通知金額
-app.post('/set-target-price', async (req, res) => {
+app.post("/set-target-price", async (req, res) => {
  try {
   const { productId, price } = req.body;
 
   if (!productId || price == null) {
-   return res.json({ status: '1x101', message: '缺少參數' });
+   return res.json({ status: "1x101", message: "缺少參數" });
   }
   const numPrice = Number(price);
   if (Number.isNaN(numPrice) || numPrice <= 0) {
-   return res.json({ status: '1x101', message: '價格格式錯誤' });
+   return res.json({ status: "1x101", message: "價格格式錯誤" });
   }
 
   // 只能設定自己的商品
   const product = await Product.findOne({ _id: productId, userId: req.userId });
   if (!product) {
-   return res.json({ status: '1x101', message: '找不到商品或無權限' });
+   return res.json({ status: "1x101", message: "找不到商品或無權限" });
   }
 
   product.targetPrice = numPrice;
   product.hasNotified = false; // 重新設定目標價時，重置通知旗標
   await product.save();
 
-  return res.json({ status: '1x100', message: '到價價格設定成功' });
+  return res.json({ status: "1x100", message: "到價價格設定成功" });
  } catch (error) {
   console.error(error);
-  return res.status(500).json({ status: '9x999', message: '伺服器錯誤' });
+  return res.status(500).json({ status: "9x999", message: "伺服器錯誤" });
  }
 });
 
@@ -459,9 +459,9 @@ app.post('/set-target-price', async (req, res) => {
 // }
 
 // 爬蟲商品
-app.post('/tracker', async (req, res) => {
+app.post("/tracker", async (req, res) => {
  const { url } = req.body;
- if (!url) return res.json({ status: '1x101', message: '缺少商品網址' });
+ if (!url) return res.json({ status: "1x101", message: "缺少商品網址" });
 
  try {
   const product = await scrapeWithRetry(url, 1);
@@ -477,10 +477,29 @@ app.post('/tracker', async (req, res) => {
 
   await newProduct.save();
   await User.findByIdAndUpdate(req.userId, { $push: { products: newProduct._id } });
-  res.json({ status: '1x100', message: '增加成功' });
+  res.json({ status: "1x100", message: "增加成功" });
  } catch (err) {
   console.log(err);
-  res.json({ status: '9x999', message: '伺服器錯誤' });
+  res.json({ status: "9x999", message: "伺服器錯誤" });
+ }
+});
+app.post("/n8n-tracker", async (req, res) => {
+ const { url, productName, productPrice, imgSrc } = req.body;
+ try {
+  const now = new Date().toISOString().slice(0, 10);
+  const newProduct = new Product({
+   url,
+   name: productName,
+   imgSrc: imgSrc,
+   history: [{ date: HTMLUnknownElement, price: toNumber(productPrice) }],
+   userId: req.userId,
+  });
+  await newProduct.save(),
+   await User.findByIdAndUpdate(req.userId, { $push: { products: newProduct._id } });
+  res.json({ status: "1x100", message: "增加成功" });
+ } catch (err) {
+  console.log(err);
+  res.json({ status: "9x999", message: "伺服器錯誤" });
  }
 });
 
@@ -491,20 +510,20 @@ app.post('/tracker', async (req, res) => {
 // });
 
 // 刪除商品
-app.delete('/deletetracker/:trackerID', auth, async (req, res) => {
+app.delete("/deletetracker/:trackerID", auth, async (req, res) => {
  const { trackerID } = req.params;
  try {
   // 1. 先刪掉商品本身
   const deletedProduct = await Product.findByIdAndDelete(trackerID);
-  if (!deletedProduct) return res.json({ status: '1x101', message: '沒有可刪除商品' });
+  if (!deletedProduct) return res.json({ status: "1x101", message: "沒有可刪除商品" });
 
   // 2. 再把這個商品 id 從 user.products 陣列移除
   await User.findByIdAndUpdate(req.userId, { $pull: { products: trackerID } });
 
-  res.json({ status: '1x100', message: '刪除成功' });
+  res.json({ status: "1x100", message: "刪除成功" });
  } catch (err) {
   console.log(err);
-  res.json({ status: '9x999', message: '伺服器錯誤' });
+  res.json({ status: "9x999", message: "伺服器錯誤" });
  }
 });
 
