@@ -517,17 +517,22 @@ app.post("/n8n-update-product", async (req, res) => {
  console.log("n8n-update-start")
  try {
   const products = await Product.find()
-  if (products.length === 0) return //無資料直接return
+  if (products.length === 0) {
+   return res.json({ status: "1x101", message: "無資料" })
+  }
+
   const now = new Date().toISOString().slice(0, 10)
+
   for (const p of products) {
    const result = await scrapeProduct(p.url)
    const newHistory = { date: now, price: result.price }
 
    p.history.push(newHistory)
    await p.save()
-   res.json({ status: "1x100", message: "更新成功" })
   }
-  console.log(`${now}更新完成`)
+
+  console.log(`${now} 更新完成`)
+  res.json({ status: "1x100", message: "更新完成" }) // 移到迴圈外
  } catch (err) {
   console.log("cron err", err)
   res.json({ status: "9x999", message: err.message })
