@@ -15,7 +15,7 @@ const port = process.env.PORT || 3001
 app.use(cors())
 app.use(express.json())
 app.use((req, res, next) => {
- if (["/login", "/register", "/health"].includes(req.path)) return next()
+ if (["/login", "/register", "/health", "/n8n-update-product"].includes(req.path)) return next()
  auth(req, res, next)
 })
 
@@ -167,46 +167,46 @@ app.post("/set-target-price", async (req, res) => {
 })
 
 //爬取商品
-// async function scrapeProduct(url) {
-//  const browser = await puppeteer.launch({
-//   //   executablePath: puppeteer.executablePath(),
-//   args: ["--no-sandbox", "--disable-setuid-sandbox"],
-//   timeout: 60000, //超時時間
-//  });
-//  const page = await browser.newPage();
-//  await page.goto(url, { waitUntil: "domcontentloaded" }); //等待完全載入
+async function scrapeProduct(url) {
+ const browser = await puppeteer.launch({
+  //   executablePath: puppeteer.executablePath(),
+  args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  timeout: 60000, //超時時間
+ })
+ const page = await browser.newPage()
+ await page.goto(url, { waitUntil: "domcontentloaded" }) //等待完全載入
 
-//  const product = await page.evaluate(() => {
-//   //name
-//   const name = document.getElementById("osmGoodsName").innerText || "無法獲取商品名稱";
-//   //price
-//   const ul = document.querySelector("ul.prdPrice");
-//   let price = "無法獲取價格";
-//   if (ul) {
-//    const length = ul.querySelectorAll("li").length;
-//    const secondLi = ul.querySelectorAll("li")[length - 1];
-//    if (secondLi) {
-//     const seoPriceElement = secondLi.querySelector(".seoPrice");
-//     if (seoPriceElement) {
-//      price = seoPriceElement.innerText;
-//     }
-//    }
-//   } else {
-//    console.log("沒有ul");
-//   }
+ const product = await page.evaluate(() => {
+  //name
+  const name = document.getElementById("osmGoodsName").innerText || "無法獲取商品名稱"
+  //price
+  const ul = document.querySelector("ul.prdPrice")
+  let price = "無法獲取價格"
+  if (ul) {
+   const length = ul.querySelectorAll("li").length
+   const secondLi = ul.querySelectorAll("li")[length - 1]
+   if (secondLi) {
+    const seoPriceElement = secondLi.querySelector(".seoPrice")
+    if (seoPriceElement) {
+     price = seoPriceElement.innerText
+    }
+   }
+  } else {
+   console.log("沒有ul")
+  }
 
-//   const img = document.querySelector("img.jqzoom");
-//   const src = img ? img.src : "無法獲取圖片";
+  const img = document.querySelector("img.jqzoom")
+  const src = img ? img.src : "無法獲取圖片"
 
-//   return {
-//    name: name,
-//    price: price,
-//    imgSrc: src,
-//   };
-//  });
-//  await browser.close();
-//  return product;
-// }
+  return {
+   name: name,
+   price: price,
+   imgSrc: src,
+  }
+ })
+ await browser.close()
+ return product
+}
 // async function scrapeProduct(url) {
 //  let browser;
 //  try {
@@ -510,6 +510,27 @@ app.post("/n8n-tracker", async (req, res) => {
  } catch (err) {
   console.log(err)
   res.json({ status: "9x999", message: "伺服器錯誤" })
+ }
+})
+
+app.post("/n8n-update-product", async (req, res) => {
+ console.log("n8n-update-start")
+ try {
+  const products = await Product.find()
+  if (products.length === 0) return //無資料直接return
+  const now = new Date().toISOString().slice(0, 10)
+  for (const p of products) {
+   const result = await scrapeProduct(p.url)
+   const newHistory = { date: now, price: result.price }
+
+   p.history.push(newHistory)
+   await p.save()
+   res.json({ status: "1x100", message: "更新成功" })
+  }
+  console.log(`${now}更新完成`)
+ } catch (err) {
+  console.log("cron err", err)
+  res.json({ status: "9x999", message: err.message })
  }
 })
 
