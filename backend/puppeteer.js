@@ -502,7 +502,7 @@ app.post("/n8n-tracker", async (req, res) => {
    url,
    name: productName,
    imgSrc: imgSrc,
-   history: [{ date: HTMLUnknownElement, price: toNumber(productPrice) }],
+   history: [{ date: now, price: Number(productPrice) }],
    userId: req.userId,
   })
   await newProduct.save(), await User.findByIdAndUpdate(req.userId, { $push: { products: newProduct._id } })
