@@ -495,6 +495,7 @@ app.post("/tracker", async (req, res) => {
 })
 app.post("/n8n-tracker", async (req, res) => {
  const { url, productName, productPrice, imgSrc } = req.body
+ console.log("url", url, "productName", productName, "productPrice", productPrice, "imgSrc", imgSrc)
  try {
   const now = new Date().toISOString().slice(0, 10)
   const newProduct = new Product({
