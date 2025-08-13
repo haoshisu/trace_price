@@ -167,46 +167,46 @@ app.post("/set-target-price", async (req, res) => {
 })
 
 //爬取商品
-async function scrapeProduct(url) {
- const browser = await puppeteer.launch({
-  //   executablePath: puppeteer.executablePath(),
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  timeout: 60000, //超時時間
- })
- const page = await browser.newPage()
- await page.goto(url, { waitUntil: "domcontentloaded" }) //等待完全載入
+// async function scrapeProduct(url) {
+//  const browser = await puppeteer.launch({
+//   //   executablePath: puppeteer.executablePath(),
+//   args: ["--no-sandbox", "--disable-setuid-sandbox"],
+//   timeout: 60000, //超時時間
+//  })
+//  const page = await browser.newPage()
+//  await page.goto(url, { waitUntil: "domcontentloaded" }) //等待完全載入
 
- const product = await page.evaluate(() => {
-  //name
-  const name = document.getElementById("osmGoodsName").innerText || "無法獲取商品名稱"
-  //price
-  const ul = document.querySelector("ul.prdPrice")
-  let price = "無法獲取價格"
-  if (ul) {
-   const length = ul.querySelectorAll("li").length
-   const secondLi = ul.querySelectorAll("li")[length - 1]
-   if (secondLi) {
-    const seoPriceElement = secondLi.querySelector(".seoPrice")
-    if (seoPriceElement) {
-     price = seoPriceElement.innerText
-    }
-   }
-  } else {
-   console.log("沒有ul")
-  }
+//  const product = await page.evaluate(() => {
+//   //name
+//   const name = document.getElementById("osmGoodsName").innerText || "無法獲取商品名稱"
+//   //price
+//   const ul = document.querySelector("ul.prdPrice")
+//   let price = "無法獲取價格"
+//   if (ul) {
+//    const length = ul.querySelectorAll("li").length
+//    const secondLi = ul.querySelectorAll("li")[length - 1]
+//    if (secondLi) {
+//     const seoPriceElement = secondLi.querySelector(".seoPrice")
+//     if (seoPriceElement) {
+//      price = seoPriceElement.innerText
+//     }
+//    }
+//   } else {
+//    console.log("沒有ul")
+//   }
 
-  const img = document.querySelector("img.jqzoom")
-  const src = img ? img.src : "無法獲取圖片"
+//   const img = document.querySelector("img.jqzoom")
+//   const src = img ? img.src : "無法獲取圖片"
 
-  return {
-   name: name,
-   price: price,
-   imgSrc: src,
-  }
- })
- await browser.close()
- return product
-}
+//   return {
+//    name: name,
+//    price: price,
+//    imgSrc: src,
+//   }
+//  })
+//  await browser.close()
+//  return product
+// }
 // async function scrapeProduct(url) {
 //  let browser;
 //  try {
