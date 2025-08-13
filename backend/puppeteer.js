@@ -24,24 +24,24 @@ app.listen(port, () => {
 });
 
 // 定時爬取
-// cron.schedule("*/1 * * * *", async () => {
-//  console.log("cron start");
-//  try {
-//   const products = await Product.find();
-//   if (products.length === 0) return; //無資料直接return
-//   const now = new Date().toISOString().slice(0, 10);
-//   for (const p of products) {
-//    const result = await scrapeProduct(p.url);
-//    const newHistory = { date: now, price: result.price };
+cron.schedule("0 23 * * *", async () => {
+ console.log("cron start");
+ try {
+  const products = await Product.find();
+  if (products.length === 0) return; //無資料直接return
+  const now = new Date().toISOString().slice(0, 10);
+  for (const p of products) {
+   const result = await scrapeProduct(p.url);
+   const newHistory = { date: now, price: result.price };
 
-//    p.history.push(newHistory);
-//    await p.save();
-//   }
-//   console.log(`${now}更新完成`);
-//  } catch (err) {
-//   console.log("cron err", err);
-//  }
-// });
+   p.history.push(newHistory);
+   await p.save();
+  }
+  console.log(`${now}更新完成`);
+ } catch (err) {
+  console.log("cron err", err);
+ }
+});
 
 // mailerTransfer setting
 const transporter = nodemailer.createTransport({
