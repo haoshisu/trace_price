@@ -1,5 +1,6 @@
+@import "tailwindcss";
 body {
-  margin: 0;
-  padding: "auto";
-  box-sizing: border-box;
+ margin: 0;
+ padding: "auto";
+ box-sizing: border-box;
 }
