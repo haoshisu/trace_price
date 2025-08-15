@@ -1,7 +1,7 @@
 import express from "express"
 import bcrypt from "bcryptjs"
 import jwt, { decode } from "jsonwebtoken"
-import puppeteer from "puppeteer"
+// import puppeteer from "puppeteer"
 import cors from "cors"
 import Product from "./modal/productSchema.js"
 import User from "./modal/userSchema.js"
@@ -23,26 +23,150 @@ app.listen(port, () => {
  console.log("server is running 3001")
 })
 
-// 定時爬取
-cron.schedule("0 23 * * *", async () => {
- console.log("cron start")
- try {
-  const products = await Product.find()
-  if (products.length === 0) return //無資料直接return
-  //   const now = new Date().toISOString().slice(0, 10);
-  const now = new Date().toLocaleDateString("zh-TW", { timeZone: "Asia/Taipei" }).replace(/\//g, "-")
-  for (const p of products) {
-   const result = await scrapeProduct(p.url)
-   const newHistory = { date: now, price: String(result.price) }
+const TZ = "Asia/Taipei"
 
-   p.history.push(newHistory)
-   await p.save()
+// 將可能是字串/含逗號的舊資料轉成 number（result.price 已是 number 則不動）
+const toNum = (v) => {
+ if (v === null || v === undefined) return null
+ const n = Number(
+  String(v)
+   .replace(/[，,\s]/g, "")
+   .replace(/[^\d.]/g, "")
+ )
+ return Number.isFinite(n) ? n : null
+}
+
+const formatYMD = () =>
+ new Intl.DateTimeFormat("zh-TW", {
+  timeZone: TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+ })
+  .format(new Date())
+  .replace(/\//g, "-")
+
+// 定時爬取2
+cron.schedule(
+ "0 7 * * *",
+ async () => {
+  console.log("cron start")
+  try {
+   const products = await Product.find().populate({ path: "userId", select: "email" }).exec()
+   if (!products.length) return
+
+   const now = formatYMD()
+   const notifyProducts = []
+
+   for (const p of products) {
+    try {
+     const email = p.userId?.email || null
+
+     // 1) 取得目前價格（你說這裡是 number）
+     const { price: currentPrice } = await scrapeProduct(p.url)
+     if (!Number.isFinite(currentPrice)) throw new Error("currentPrice not finite")
+
+     // 2) 先抓「上一筆歷史價」（在 push 之前）
+     const lastPrice = p.history?.length ? toNum(p.history[p.history.length - 1].price) : null
+
+     // 3) 比較條件（由上穿越到 <= 目標價）
+     const targetPrice = toNum(p.targetPrice)
+     const crossedDown =
+      Number.isFinite(targetPrice) && currentPrice <= targetPrice && (lastPrice == null || lastPrice > targetPrice)
+     if (crossedDown && email) {
+      notifyProducts.push({
+       name: p.name,
+       url: p.url,
+       currentPrice,
+       targetPrice,
+       userEmail: email,
+      })
+     }
+
+     // 4) 再把「今天最新價」寫入歷史（你的 schema 是 String，就存純數字字串）
+     p.history.push({ date: now, price: String(currentPrice) })
+     await p.save()
+    } catch (err) {
+     console.log("[scan item failed]", p?._id?.toString(), err.message)
+    }
+   }
+
+   // 5) 通知 n8n（JSON + 檢查回應碼）
+   if (notifyProducts.length) {
+    try {
+     const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alerts: notifyProducts }),
+     })
+     const text = await res.text() // 不確定一定是 JSON，就用 text 觀察
+     console.log("[n8n] resp", res.status, text)
+    } catch (e) {
+     console.error("[n8n] post error", e)
+    }
+   } else {
+    console.log("[n8n] no alerts")
+   }
+
+   console.log(`${now} 更新完成`)
+  } catch (err) {
+   console.log("cron err", err)
   }
-  console.log(`${now}更新完成`)
- } catch (err) {
-  console.log("cron err", err)
- }
-})
+ },
+ { timezone: TZ } // ← 很重要：以台北時間跑 cron
+)
+
+// 定時爬取
+// cron.schedule("*/1 * * * *", async () => {
+//  console.log("cron start")
+//  try {
+//   const products = await Product.find().populate({ path: "userId", select: "email" }).exec()
+//   const notifyProducts = []
+//   if (products.length === 0) return //無資料直接return
+
+//   const now = new Date().toLocaleDateString("zh-TW", { timeZone: "Asia/Taipei" }).replace(/\//g, "-")
+//   for (const p of products) {
+//    try {
+//     const email = p.userId?.email
+//     const result = await scrapeProduct(p.url)
+//     const newHistory = { date: now, price: String(result.price) }
+//     p.history.push(newHistory)
+//     const lastPrice = p.history?.length ? p.history[p.history?.length - 1].price : null
+//     const targetPrice = Number(p.targetPrice)
+//     const currentPrice = result.price
+//     const crossedDown =
+//      Number.isFinite(targetPrice) && currentPrice <= targetPrice && (lastPrice == null || lastPrice > targetPrice)
+//     if (crossedDown) {
+//      notifyProducts.push({
+//       name: p.name,
+//       url: p.url,
+//       currentPrice: currentPrice,
+//       targetPrice: targetPrice,
+//       userEmail: email,
+//      })
+//     }
+//     await p.save()
+//    } catch (err) {
+//     console.log("[scan item failed]", p?._id?.toString(), err.message)
+//    }
+//   }
+
+//   if (notifyProducts.length) {
+//    const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook-test/notification", {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ alerts: notifyProducts }),
+//    })
+//    const data = await res.json().catch(() => ({}))
+//    console.log("[n8n] resp", res.status, data)
+//   } else {
+//    console.log("[n8n] no alerts")
+//   }
+//   console.log(`${now}更新完成`)
+//  } catch (err) {
+//   console.log("cron err", err)
+//  }
+// })
 
 // mailerTransfer setting
 const transporter = nodemailer.createTransport({
