@@ -82,6 +82,7 @@ const toNum = (v) => {
 //   }
 
 //   // 5) 通知 n8n（JSON + 檢查回應碼）
+//   console.log(notifyProducts);
 //   if (notifyProducts.length) {
 //    try {
 //     const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/notification", {
@@ -156,7 +157,14 @@ app.post("/login", async (req, res) => {
  if (!isMatch) return res.status(400).json({ error: "帳號或密碼錯誤" });
 
  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
- res.json({ token, email: user.email, username: user.username });
+ res.json({ token, email: user.email, username: user.username, isDemo: !!user.isDemo });
+});
+
+// ======================== 使用者是否是demo身份 ========================
+app.get("/me", auth, async (req, res) => {
+ const u = await User.findById(req.userId).select("isDemo");
+ if (!u) return res.status(404).json({ error: "not found" });
+ res.json({ isDemo: !!u.isDemo });
 });
 
 // ======================== 獲取用戶追蹤的商品 ========================

@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema(
   username: { type: String, unique: true, required: true }, // 帳號
   password: { type: String, required: true }, // 密碼 hash
   email: { type: String, unique: true, required: true }, // 信箱
+  isDemo: { type: Boolean, default: false },
   emailNotification: { enabled: Boolean, threshold: Number },
   products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
  },
