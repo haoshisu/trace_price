@@ -33,7 +33,7 @@ const toNum = (v) => {
 };
 
 // ======================== 定時爬取 ========================
-cron.schedule("0 23 * * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
  console.log("cron start");
  try {
   const products = await Product.find().populate({ path: "userId", select: "email" }).exec();
@@ -50,6 +50,7 @@ cron.schedule("0 23 * * * *", async () => {
 
     // 1) 取得目前價格（你說這裡是 number）
     const { price: currentPrice } = await scrapeProduct(p.url);
+    console.log(currentPrice);
     if (!Number.isFinite(currentPrice)) throw new Error("currentPrice not finite");
 
     // 2) 先抓「上一筆歷史價」（在 push 之前）
