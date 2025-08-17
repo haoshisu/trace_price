@@ -20,7 +20,7 @@ export default function RegisterForm() {
  // 註冊表單送出事件
  const onSubmit = async (data: FormData) => {
   // 你可以根據實際後端 API 改這裡
-  const res = await fetch("http://localhost:3001/register", {
+  const res = await fetch("https://trace-price-backend.onrender.com/register", {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify(data),

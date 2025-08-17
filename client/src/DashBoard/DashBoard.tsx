@@ -32,9 +32,23 @@ export default function DashBoard() {
  const [products, setProducts] = useState<Product[]>([]);
  const [error, setError] = useState("");
  const [targetPrice, setTargetPrice] = useState<{ [key: string]: string }>({});
+ const [isDemo, setIsDemo] = useState<boolean>(false);
 
+ // ======================== 用戶是否demo身份 ========================
+ const handleIsDemo = async () => {
+  try {
+   const token = localStorage.getItem("token");
+   const res = await fetch("https://trace-price-backend.onrender.com/me", {
+    headers: { Authorization: `Bearer ${token}` },
+   });
+   const data = await res.json();
+   setIsDemo(data?.isDemo);
+  } catch (error) {
+   console.log(error);
+  }
+ };
  useEffect(() => {
-  fetchProducts();
+  handleIsDemo();
  }, []);
 
  //  ======================== 登出function ========================
@@ -49,7 +63,7 @@ export default function DashBoard() {
   setError("");
   try {
    const token = localStorage.getItem("token"); // 取得登入時存下來的 token
-   const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook-test/tracker", {
+   const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/tracker", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ url }),
@@ -117,6 +131,10 @@ export default function DashBoard() {
    setFetchProductLoading(false);
   }
  };
+
+ useEffect(() => {
+  fetchProducts();
+ }, []);
 
  // ======================== 設定/更新目標價 ========================
  const handleSetTargetPrice = async (productId: string) => {
@@ -421,10 +439,6 @@ export default function DashBoard() {
      <main id="main" className="mx-auto max-w-3xl px-4 py-8">
       {/* 輸入區（表單化，Enter 可送出） */}
       <section aria-labelledby="add-tracker" className="mb-6">
-       <h2 id="add-tracker" className="sr-only">
-        新增追蹤
-       </h2>
-
        <form
         className="rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm"
         onSubmit={(e) => {
@@ -453,7 +467,7 @@ export default function DashBoard() {
           <p id="track-help" className="mt-1 text-xs text-slate-500">
            例如：https://www.momoshop.com.tw/goods/…
           </p>
-          {/* 件數摘要 */}
+
           <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 rounded-lg bg-slate-100 px-2 py-1 text-[11px] text-slate-600">
            追蹤中 {products.length} 件
           </span>
@@ -479,7 +493,12 @@ export default function DashBoard() {
        </form>
       </section>
 
-      {/* --- 卡片清單區（把你現有的 products.map(...) 原封貼回） --- */}
+      {isDemo && (
+       <p role="alert" className="m-2 text-sm text-red-500">
+        **Demo 帳號僅供瀏覽與新增追蹤商品**
+       </p>
+      )}
+      {/* 商品卡片區 */}
       <section aria-labelledby="list" className="grid gap-4">
        <h2 id="list" className="sr-only">
         追蹤清單
@@ -490,11 +509,12 @@ export default function DashBoard() {
          price: Number(String(e.price).replace(/,/g, "")),
         }));
 
-        // 小工具：取得最新數字價格、判斷是否達標、判斷輸入是否有效/是否未變更
+        // 取得最新數字價格、判斷是否達標、判斷輸入是否有效/是否未變更
         const latestPriceNum = (() => {
          const raw = product.history[product.history.length - 1]?.price ?? "";
          return Number(String(raw).replace(/[^\d.]/g, ""));
         })();
+
         const inputStr = targetPrice[product._id] ?? "";
         const inputNum = Number(String(inputStr).replace(/[^\d.]/g, ""));
         const hasTarget = typeof (product as any).targetPrice === "number";
@@ -513,9 +533,15 @@ export default function DashBoard() {
          >
           {/* 刪除 */}
           <button
-           onClick={() => handleDeleteTrack(product._id)}
-           className="absolute top-3 right-3 text-red-500 hover:text-red-600"
-           title="刪除追蹤"
+           //  disabled={isDemo}
+           onClick={() => {
+            if (isDemo) return toast.info("Demo帳號僅供瀏覽");
+            handleDeleteTrack(product._id);
+           }}
+           className={`absolute top-2 right-2 z-10 ${
+            isDemo ? "text-red-600 cursor-not-allowed" : "text-red-500 hover:text-red-700"
+           }`}
+           title={isDemo ? "Demo 帳號無法刪除" : "刪除追蹤"}
           >
            <X className="w-5 h-5" />
           </button>
@@ -578,6 +604,7 @@ export default function DashBoard() {
               NT$
              </span>
              <input
+              disabled={isDemo}
               type="number"
               inputMode="numeric"
               placeholder="目標價"
@@ -592,6 +619,7 @@ export default function DashBoard() {
               ].join(" ")}
              />
              <button
+              disabled={isDemo}
               type="button"
               onClick={() =>
                setTargetPrice((prev) => ({
