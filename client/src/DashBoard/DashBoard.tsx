@@ -145,11 +145,14 @@ export default function DashBoard() {
   }
   try {
    const token = localStorage.getItem("token");
-   const res = await fetch(`http://localhost:3001/products/${productId}/target-price`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ price: num }),
-   });
+   const res = await fetch(
+    `hhttps://trace-price-backend.onrender.com/products/${productId}/target-price`,
+    {
+     method: "POST",
+     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+     body: JSON.stringify({ price: num }),
+    }
+   );
    const data = await res.json();
    if (!res.ok || data.status !== "1x100") return toast.error(data.message || "設定失敗");
    toast.success("已設定到價通知");
@@ -163,10 +166,13 @@ export default function DashBoard() {
  const handleClearTargetPrice = async (productId: string) => {
   try {
    const token = localStorage.getItem("token");
-   const res = await fetch(`http://localhost:3001/products/${productId}/target-price`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-   });
+   const res = await fetch(
+    `https://trace-price-backend.onrender.com/products/${productId}/target-price`,
+    {
+     method: "DELETE",
+     headers: { Authorization: `Bearer ${token}` },
+    }
+   );
    const data = await res.json();
    if (!res.ok || data.status !== "1x100") return toast.error(data.message || "清除失敗");
 
