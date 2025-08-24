@@ -49,7 +49,7 @@ cron.schedule("0 23 * * *", async () => {
     const email = p.userId?.email || null;
 
     // 1) 取得目前價格（這裡的價格是number）
-    const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/scrape", {
+    const res = await fetch("http://localhost:5678/webhook/scrape", {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ url: p.url }),
@@ -93,7 +93,7 @@ cron.schedule("0 23 * * *", async () => {
   console.log(notifyProducts);
   if (notifyProducts.length) {
    try {
-    const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/notification", {
+    const res = await fetch("http://localhost:5678/webhook/notification", {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ alerts: notifyProducts }),
