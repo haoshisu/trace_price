@@ -5,7 +5,7 @@ import cors from "cors";
 import Product from "./modal/productSchema.js";
 import User from "./modal/userSchema.js";
 import cron from "node-cron";
-import { scrapeProduct, scrapeWithRetry, toNumber } from "./scraper.js";
+import { scrapeProduct } from "./scraper.js";
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -33,7 +33,7 @@ const toNum = (v) => {
 };
 
 // ======================== 定時爬取 ========================
-// cron.schedule("*/5 * * * *", async () => {
+// cron.schedule("0 23 * * *", async () => {
 //  console.log("cron start");
 //  try {
 //   const products = await Product.find().populate({ path: "userId", select: "email" }).exec();
@@ -240,14 +240,15 @@ app.post("/tracker", async (req, res) => {
  if (!url) return res.json({ status: "1x101", message: "缺少商品網址" });
 
  try {
-  const product = await scrapeWithRetry(url, 1);
+  const { name, price, imgSrc } = await scrapeProduct(url, 1);
+  console.log(name, price, imgSrc, url);
   const now = new Date().toISOString().slice(0, 10);
   const newProduct = new Product({
    //存進mongodb
    url,
-   name: product.name,
-   imgSrc: product.imgSrc,
-   history: [{ date: now, price: toNumber(product.price) }],
+   name: name,
+   imgSrc: imgSrc,
+   history: [{ date: now, price: Number(price) }],
    userId: req.userId,
   });
 
