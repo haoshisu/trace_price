@@ -33,85 +33,85 @@ const toNum = (v) => {
 };
 
 // ======================== 定時爬取 ========================
-cron.schedule("0 23 * * *", async () => {
- console.log("cron start");
- try {
-  const products = await Product.find().populate({ path: "userId", select: "email" }).exec();
-  if (!products.length) return;
+// cron.schedule("*/5 * * * *", async () => {
+//  console.log("cron start");
+//  try {
+//   const products = await Product.find().populate({ path: "userId", select: "email" }).exec();
+//   if (!products.length) return;
 
-  const now = new Date()
-   .toLocaleDateString("zh-TW", { timeZone: "Asia/Taipei" })
-   .replace(/\//g, "-");
-  const notifyProducts = [];
+//   const now = new Date()
+//    .toLocaleDateString("zh-TW", { timeZone: "Asia/Taipei" })
+//    .replace(/\//g, "-");
+//   const notifyProducts = [];
 
-  for (const p of products) {
-   try {
-    const email = p.userId?.email || null;
+//   for (const p of products) {
+//    try {
+//     const email = p.userId?.email || null;
 
-    // 1) 取得目前價格（這裡的價格是number）
-    const res = await fetch("http://localhost:5678/webhook/scrape", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ url: p.url }),
-    });
-    const data = await res.json();
-    console.log(data);
-    const currentPrice = Number(data?.price.replace(/,/g, ""));
-    console.log(currentPrice);
+//     // 1) 取得目前價格（這裡的價格是number）
+//     const res = await fetch("http://localhost:5678/webhook/scrape", {
+//      method: "POST",
+//      headers: { "Content-Type": "application/json" },
+//      body: JSON.stringify({ url: p.url }),
+//     });
+//     const data = await res.json();
+//     console.log(data);
+//     const currentPrice = Number(data?.price.replace(/,/g, ""));
+//     console.log(currentPrice);
 
-    if (!Number.isFinite(currentPrice)) throw new Error("currentPrice not finite");
+//     if (!Number.isFinite(currentPrice)) throw new Error("currentPrice not finite");
 
-    // 2) 先抓「上一筆歷史價」（在 push 之前）
-    const lastPrice = p.history?.length ? toNum(p.history[p.history.length - 1].price) : null;
+//     // 2) 先抓「上一筆歷史價」（在 push 之前）
+//     const lastPrice = p.history?.length ? toNum(p.history[p.history.length - 1].price) : null;
 
-    // 3) 比較條件（由上穿越到 <= 目標價）
-    const targetPrice = toNum(p.targetPrice);
-    const crossedDown =
-     Number.isFinite(targetPrice) &&
-     currentPrice <= targetPrice &&
-     (lastPrice == null || lastPrice > targetPrice);
-    if (crossedDown && email) {
-     notifyProducts.push({
-      name: p.name,
-      url: p.url,
-      currentPrice,
-      targetPrice,
-      userEmail: email,
-     });
-    }
+//     // 3) 比較條件（由上穿越到 <= 目標價）
+//     const targetPrice = toNum(p.targetPrice);
+//     const crossedDown =
+//      Number.isFinite(targetPrice) &&
+//      currentPrice <= targetPrice &&
+//      (lastPrice == null || lastPrice > targetPrice);
+//     if (crossedDown && email) {
+//      notifyProducts.push({
+//       name: p.name,
+//       url: p.url,
+//       currentPrice,
+//       targetPrice,
+//       userEmail: email,
+//      });
+//     }
 
-    // 4) 把今天最新價寫入歷史（table 屬性是字串）
-    p.history.push({ date: now, price: String(currentPrice) });
-    await p.save();
-    await new Promise((r) => setTimeout(r, 5000)); //等五秒後再繼續執行
-   } catch (err) {
-    console.log("[scan item failed]", p?._id?.toString(), err.message);
-   }
-  }
+//     // 4) 把今天最新價寫入歷史（table 屬性是字串）
+//     p.history.push({ date: now, price: String(currentPrice) });
+//     await p.save();
+//     await new Promise((r) => setTimeout(r, 5000)); //等五秒後再繼續執行
+//    } catch (err) {
+//     console.log("[scan item failed]", p?._id?.toString(), err.message);
+//    }
+//   }
 
-  // 5) 發送 n8n (JSON + 檢查回應碼)
-  console.log(notifyProducts);
-  if (notifyProducts.length) {
-   try {
-    const res = await fetch("http://localhost:5678/webhook/notification", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ alerts: notifyProducts }),
-    });
-    const text = await res.json();
-    console.log("[n8n] resp", res.status, text);
-   } catch (e) {
-    console.error("[n8n] post error", e);
-   }
-  } else {
-   console.log("[n8n] no alerts");
-  }
+//   // 5) 發送 n8n (JSON + 檢查回應碼)
+//   console.log(notifyProducts);
+//   if (notifyProducts.length) {
+//    try {
+//     const res = await fetch("http://localhost:5678/webhook/notification", {
+//      method: "POST",
+//      headers: { "Content-Type": "application/json" },
+//      body: JSON.stringify({ alerts: notifyProducts }),
+//     });
+//     const text = await res.json();
+//     console.log("[n8n] resp", res.status, text);
+//    } catch (e) {
+//     console.error("[n8n] post error", e);
+//    }
+//   } else {
+//    console.log("[n8n] no alerts");
+//   }
 
-  console.log(`${now} 更新完成`);
- } catch (err) {
-  console.log("cron err", err);
- }
-});
+//   console.log(`${now} 更新完成`);
+//  } catch (err) {
+//   console.log("cron err", err);
+//  }
+// });
 
 // ======================== JWT 驗證 middleware ========================
 function auth(req, res, next) {
