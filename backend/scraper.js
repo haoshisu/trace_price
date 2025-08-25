@@ -9,7 +9,7 @@ const UA =
 export async function scrapeProduct(url) {
  const res = await axios.get(url, {
   responseType: "arraybuffer",
-  timeout: 20000,
+  timeout: 50000,
   maxRedirects: 5,
   headers: {
    "User-Agent": UA,
