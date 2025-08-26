@@ -63,7 +63,7 @@ export default function DashBoard() {
   setError("");
   try {
    const token = localStorage.getItem("token"); // 取得登入時存下來的 token
-   const res = await fetch("https://haoshisu0614.app.n8n.cloud/webhook/tracker", {
+   const res = await fetch("https://6290bc1bb7c1.ngrok-free.app/webhook/tracker", {
     //http://localhost:5678/webhook/tracker
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
