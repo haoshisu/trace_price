@@ -139,7 +139,7 @@ export default function DashBoard() {
   try {
    const token = localStorage.getItem("token");
    const res = await fetch(
-    `hhttps://trace-price-backend.onrender.com/products/${productId}/target-price`,
+    `https://trace-price-backend.onrender.com/products/${productId}/target-price`,
     {
      method: "POST",
      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
