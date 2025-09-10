@@ -62,9 +62,8 @@ export default function DashBoard() {
   setLoading(true);
   setError("");
   try {
-   const token = localStorage.getItem("token"); // 取得登入時存下來的 token
+   const token = localStorage.getItem("token");
    const res = await fetch("https://70c3cf9dccd8.ngrok-free.app/webhook/tracker", {
-    //http://localhost:5678/webhook/tracker
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ url }),
@@ -89,7 +88,7 @@ export default function DashBoard() {
  // ======================== 刪除追蹤商品 ========================
  const handleDeleteTrack = async (trackerID: string) => {
   try {
-   const token = localStorage.getItem("token"); // 取得登入時存下來的 token
+   const token = localStorage.getItem("token");
    const res = await fetch(`https://trace-price-backend.onrender.com/deletetracker/${trackerID}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -110,7 +109,7 @@ export default function DashBoard() {
  const fetchProducts = async () => {
   setFetchProductLoading(true);
   try {
-   const token = localStorage.getItem("token"); // 取得登入時存下來的 token
+   const token = localStorage.getItem("token");
    const res = await fetch("https://trace-price-backend.onrender.com/products", {
     headers: {
      Authorization: `Bearer ${token}`,
@@ -118,16 +117,9 @@ export default function DashBoard() {
    });
    const data = await res.json();
    setProducts(data);
-
-   //    const next: { [k: string]: string } = {};
-   //    data.forEach((p) => {
-   //     next[p._id] = p.targetPrice != null ? String(p.targetPrice) : "";
-   //    });
-   //    console.log(next);
    setTargetPrice({});
   } catch (err) {
    toast.warning("無法獲取追蹤商品");
-   //    console.error("無法獲取追蹤清單", err);
   } finally {
    setFetchProductLoading(false);
   }
@@ -140,7 +132,7 @@ export default function DashBoard() {
  // ======================== 設定/更新目標價 ========================
  const handleSetTargetPrice = async (productId: string) => {
   const val = targetPrice[productId];
-  const num = Number(String(val).replace(/[^\d.]/g, "")); // 容錯：移除非數字
+  const num = Number(String(val).replace(/[^\d.]/g, ""));
   if (!Number.isFinite(num) || num <= 0) {
    return toast.warning("請輸入有效的正整數/數字價格");
   }
@@ -314,7 +306,6 @@ export default function DashBoard() {
          >
           {/* 刪除 */}
           <button
-           //  disabled={isDemo}
            onClick={() => {
             if (isDemo) return toast.info("Demo帳號僅供瀏覽");
             handleDeleteTrack(product._id);
@@ -365,7 +356,7 @@ export default function DashBoard() {
              追蹤日期：{product.history[product.history.length - 1]?.date}
             </div>
 
-            {/* 目前目標價（若已有） */}
+            {/* 目前目標價*/}
             {(product as any).targetPrice != null && (
              <div className="mt-1">
               <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
@@ -379,7 +370,6 @@ export default function DashBoard() {
           {/* 到價設定區 */}
           <div className="mt-4 space-y-1.5">
            <div className="flex flex-wrap items-center gap-2">
-            {/* 帶前綴 + 取現價 */}
             <div className="relative">
              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
               NT$
@@ -434,7 +424,6 @@ export default function DashBoard() {
              type="button"
              onClick={() => {
               if (hasTarget) {
-               // 已設定過目標價 → 呼叫後端清除
                handleClearTargetPrice(product._id);
               } else {
                // 尚未設定，只是輸入框有值 → 只清空輸入框
