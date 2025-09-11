@@ -1,7 +1,7 @@
 # momo商品價格追蹤器 (Trace Price)
-到價通知・歷史價格趨勢  
-因為 momo App 的通知太多，無法只針對我關心的商品是否有降價，所以我開發了這個專案。  
-使用者可以自行設定想追蹤的商品與目標價格，系統會每天自動爬取最新價格，當價格低於設定值時會發送通知，並同時保留歷史價格走勢以供查看。
+### 到價通知・歷史價格趨勢  
+### 因為 momo App 的通知太多，無法只針對我關心的商品是否有降價，所以我開發了這個專案。 
+### 使用者可以自行設定想追蹤的商品與目標價格，系統會每天自動爬取最新價格，當價格低於設定值時會發送通知，並同時保留歷史價格走勢以供查看。
 ---
 
 ## ✨ 功能特色
@@ -67,16 +67,12 @@ PORT=3001
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/trace-price
 JWT_SECRET=your_jwt_secret
 
-SMTP_HOST=smtp.mailtrap.io
-SMTP_PORT=2525
-SMTP_USER=your_smtp_user
-SMTP_PASS=your_smtp_pass
 ```
 
 ### 4. 啟動專案
 後端：
 ```bash
-cd server
+cd backend
 npm run start
 ```
 
@@ -85,8 +81,21 @@ npm run start
 cd client
 npm run dev
 ```
+### 5. docker
+- Docker Desktop
+- n8nio/n8n:latest
+- 建立一個 Container，設定以下參數：
+  - Port 映射：5678:5678
+  - 環境變數：
+  - GENERIC_TIMEZONE=Asia/Taipei
+  - N8N_BASIC_AUTH_ACTIVE=true
+  - N8N_BASIC_AUTH_USER=admin
+  - N8N_BASIC_AUTH_PASSWORD=admin123
+  - Volume（選填）：掛載本地資料夾到 /home/node/.n8n 保存 workflow 設定
+- 啟動容器後，打開 http://localhost:5678，使用上一步設定的帳號密碼登入 n8n。
+- 進入 Workflows → Import from File，
 
-### 5. 開發測試
+### 6. 開發測試
 - 註冊帳號並登入
 - 在 Dashboard 輸入商品網址，新增追蹤
 - 爬蟲會自動擷取商品資訊，並每日更新價格
