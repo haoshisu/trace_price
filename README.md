@@ -91,6 +91,3 @@ npm run dev
 - 在 Dashboard 輸入商品網址，新增追蹤
 - 爬蟲會自動擷取商品資訊，並每日更新價格
 ---
-
-## 📄 授權
-MIT License
